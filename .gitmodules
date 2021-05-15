@@ -1,0 +1,3 @@
+[submodule "config/shared/sls"]
+	path = config/shared/sls
+	url = git@github.com:nibynool/alphageek-sls-shared-config.git
