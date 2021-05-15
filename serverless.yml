@@ -1,4 +1,21 @@
-service: cors-proxy
+service: AgCorsProxy
+
+package:
+  individually: true
+  exclude:
+    - '.*'
+    - '.*/**'
+    - 'config/**'
+    - 'public/**'
+    - 'scaffolds/**'
+    - 'scripts/**'
+    - 'source/**'
+    - 'themes/**'
+    - '*'
+  include:
+    - 'config/shared/sls/src/**'
+    - 'config/sls/src/**'
+
 
 plugins:
   - serverless-offline
@@ -6,26 +23,47 @@ plugins:
 provider:
   name: aws
   runtime: nodejs12.x
-  timeout: 60
-  stage: dev
-  region: eu-central-1
+  region: ${self:custom.shared.region}
+  stackTags:
+    COSTCENTER: alphageek
+    SERVICE: ${self:service}
   environment:
-    foo: 123
+    REGION: ${opt:region, 'us-east-1'}
+    STAGE: ${self:custom.shared.stage}
+    SERVICE: ${self:service.name}
+    STACK: ${self:custom.shared.stackName}
+    AUTHORISED_HOSTS: ${self:custom.shared.domains.${self:custom.shared.stage}, self:custom.shared.domains.default}
+  versionFunctions: true
+  stackName: ${self:custom.shared.stackName}
+  stage: ${self:custom.shared.stage}
+  tracing:
+    lambda: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        Fn::Join:
+          - ":"
+          - - arn:aws:ssm
+            - Ref: AWS::Region
+            - Ref: AWS::AccountId
+            - parameter/AgWafBasicAuth*
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        Fn::Join:
+          - ":"
+          - - arn:aws:ssm
+            - Ref: AWS::Region
+            - Ref: AWS::AccountId
+            - parameter/AgWafUserAgent
+  timeout: 60
+
+custom:
+  shared: ${file(config/shared/sls/custom.yml)}
 
 functions:
-  lambda:
-    name: cors-proxy
-    handler: handler.corsProxy
-    events:
-      - http:
-          path: ''
-          method: get
-          cors: true
-      - http:
-          path: ''
-          method: post
-          cors: true
-      - http:
-          path: ''
-          method: put
-          cors: true
+  - ${file(config/shared/sls/functions/basicauth.yml)}
+  - ${file(config/functions/handler.yml)}

@@ -1,0 +1,15 @@
+proxy:
+  handler: src/handlers/corsProxy.handler
+  events:
+    - http:
+        path: ''
+        method: get
+        cors: true
+    - http:
+        path: ''
+        method: post
+        cors: true
+    - http:
+        path: ''
+        method: put
+        cors: true
