@@ -1,0 +1,6 @@
+domainName: ${self:custom.shared.domain.fqdn}
+certificateName: ${self:custom.shared.domain.tld}
+stage: ${self:custom.shared.stage}
+createRoute53Record: true
+apiType: http
+endpointType: regional

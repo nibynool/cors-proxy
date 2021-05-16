@@ -19,6 +19,7 @@ package:
 
 plugins:
   - serverless-offline
+  - serverless-domain-manager
 
 provider:
   name: aws
@@ -59,10 +60,10 @@ provider:
             - Ref: AWS::Region
             - Ref: AWS::AccountId
             - parameter/AgWafUserAgent
-  timeout: 60
 
 custom:
   shared: ${file(config/shared/sls/custom.yml)}
+  customDomain: ${file(config/resources/customDomain.yml)}
 
 functions:
   - ${file(config/shared/sls/functions/basicauth.yml)}
