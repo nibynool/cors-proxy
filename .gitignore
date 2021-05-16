@@ -1,8 +1,19 @@
-/.idea
-.build
-*node_modules*
-*.serverless*
-npm-debug.log
-debug.log
-*/config/*.yml
-!*/config/*.dist
+# macOS specific files
+.DS_Store
+Thumbs.db
+
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+_multiconfig.yml
+
+# Hexo
+public
+db.json
+*.log
+
+# Semaphore secret files
+.semaphore/secrets/*
