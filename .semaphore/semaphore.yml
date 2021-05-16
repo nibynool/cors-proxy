@@ -1,0 +1,77 @@
+version: v1.0
+name: AlphaGeek CORS Proxy Build Pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+global_job_config:
+  secrets:
+    - name: github-ssh
+  prologue:
+    commands:
+      - sem-version node 12.13.0
+      - export TZ=Australia/Melbourne
+      - chmod 0600 ~/.keys/*
+      - ssh-add ~/.keys/*
+      - checkout
+      - cache restore npm-$(npm show npm version)
+      - cache restore node-modules-$(checksum package-lock.json)
+      - git submodule init
+      - git submodule update
+      - export ENV=dev
+      - '[ "${SEMAPHORE_GIT_REF_TYPE}" = "branch" ] && [ "${SEMAPHORE_GIT_BRANCH}" = "master" ] && export ENV=uat || true'
+      - '[ "${SEMAPHORE_GIT_REF_TYPE}" = "tag" ] && export ENV=prod || true'
+  epilogue:
+    commands:
+      - git submodule deinit --force .
+blocks:
+  - name: Install NPM
+    dependencies: []
+    task:
+      jobs:
+        - name: Update and cache NPM
+          commands:
+            - npm i -g npm
+            - cache store npm-$(npm show npm version) .nvm/versions/node/$(nvm current)/lib/node_modules/npm
+  - name: Install Node Modules
+    dependencies:
+      - Install NPM
+    task:
+      jobs:
+        - name: Install and cache Node Modules
+          commands:
+            - npm ci
+            - cache store node-modules-$(checksum package-lock.json) node_modules
+  - name: Pre-build Tests
+    dependencies:
+      - Install Node Modules
+    skip:
+      when: tag =~ '^[0-9]+\.[0-9]+\.[0-9]+$'
+    task:
+      jobs:
+        - name: Test with Jest
+          commands:
+            - npx jest --passWithNoTests
+  - name: Build Deployment
+    dependencies:
+      - Pre-build Tests
+    task:
+      jobs:
+        - name: Build Deployment Files
+          commands:
+            - npx sls --stage=${ENV} package
+            - artifact push workflow .serverless --expire-in 1d --force --destination serverless
+  - name: Deploy Infrastructure
+    dependencies:
+      - Build Deployment
+    run:
+      when: "change_in(['/config/shared/sls/', '/serverless.yml', '/.semaphore/'])"
+    task:
+      secrets:
+        - name: alphageek-aws
+      jobs:
+        - name: Deploy Infrastructure with SLS
+          commands:
+            - artifact pull workflow serverless --force --destination .serverless
+            - npx sls --stage=${ENV} create_domain
+            - npx sls --stage=${ENV} deploy
