@@ -59,7 +59,7 @@ blocks:
       jobs:
         - name: Build Deployment Files
           commands:
-            - npx sls --stage=${ENV} package
+            - npx sls package --stage=${ENV}
             - artifact push workflow .serverless --expire-in 1d --force --destination serverless
   - name: Deploy Infrastructure
     dependencies:
@@ -73,5 +73,5 @@ blocks:
         - name: Deploy Infrastructure with SLS
           commands:
             - artifact pull workflow serverless --force --destination .serverless
-            - npx sls --stage=${ENV} create_domain
-            - npx sls --stage=${ENV} deploy
+            - npx sls create_domain --stage=${ENV}
+            - npx sls deploy --stage=${ENV}
